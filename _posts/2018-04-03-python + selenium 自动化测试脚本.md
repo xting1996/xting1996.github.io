@@ -1,0 +1,66 @@
+## python + selenium 自动化测试脚本
+
+----
+
+有输入也要有输出系列1
+
+-----
+
+
+
+需求：RNA minimum free energy预测，[RNAfold WebServer](![1522752239373](C:\Users\dell\AppData\Local\Temp\1522752239373.png)) 在线版，虽然RNAfold有本地版，但是本地版和在线版的结果不一样，而我的数据结果和在线版一致，所以需要使用在线版来预测。
+
+优点：
+
++ 在线版结果是我所需要的。
++ 在线版的mfe之外的其他结果辅助
+
+缺点：
+
++ 在线版一次只能跑一条序列          
+
+所以希望能用脚本，一次性能提交多条序列，循环跑。
+
+![1522752795766](C:\Users\dell\AppData\Local\Temp\1522752795766.png)
+
+![1522752819792](C:\Users\dell\AppData\Local\Temp\1522752819792.png)
+
+如图所示，需要在第一个文本框中填写RNA sequence,其他各个参数为默认参数，提交Proceed。运行结果如下，我需要得到下面四个数据。
+
+![1522753574493](C:\Users\dell\AppData\Local\Temp\1522753574493.png)
+
+准备工作：
+
++ Python 3.6.1 |Anaconda 4.4.0 (64-bit)
++ Firefox
++ 下载geckodriver.exe安装在Firefox的文件夹下
+
+```python
+from selenium import webdriver
+import time
+def automate(sgRNA):
+    dr = webdriver.Firefox(executable_path = 'F:/software/firefox/geckodriver.exe')
+    url = 'http://rna.tbi.univie.ac.at/cgi-bin/RNAWebSuite/RNAfold.cgi'
+    dr.get(url) 
+    #文本框的id为SCREEN
+    dr.find_element_by_id("SCREEN").send_keys(sgRNA)
+    #submit为class name 为proceed
+    dr.find_element_by_class_name('proceed').submit()
+    #如果下面几个find element 出现out of range，有可能是页面还没有缓冲出来，所以要足够的sleep的时间
+    #这里设定的30s是可以work的，当然也是在网速好的时候
+    time.sleep(30)
+    #下面三个均为提取element的code，感谢志恒师兄的帮助，我自己一点也不懂html
+    main = dr.find_element_by_id('contentmain')
+    ps = main.find_elements_by_tag_name('p')
+    p = ps[2].find_elements_by_tag_name('b')
+    #minimum_free_energy
+    mfe = ps[0].find_element_by_tag_name('b').text
+    #free_energy_of_the_thermodynamic_ensemble = p[0].text
+    frequency_MFE_structure = p[1].text
+    ensemble_diversity = p[2].text
+    return mfe,frequency_MFE_structure,ensemble_diversity
+    time.sleep(3)
+    dr.close()
+```
+
+写个for 循环就可以调用这个function，这样就可以批量跑RNAfold了。
